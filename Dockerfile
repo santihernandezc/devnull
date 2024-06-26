@@ -12,4 +12,4 @@ RUN chmod +x /devnull
 
 EXPOSE 8080
 
-CMD ["/devnull/devnull"]
+ENTRYPOINT ["/devnull/devnull"]
