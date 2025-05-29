@@ -11,10 +11,14 @@ If set to forward requests, it will return the response from the target.
 
 ```bash
 -o string
-    Output file
--port string
+    Output file for logs
+-p string
     Port to listen on (default "8080")
--target string
-    URL to forward requests to
+-status int
+    Status code used in responses if no target is configured (default 200)
+-t string
+    Target (URL) to forward requests to
 -v	Enable verbose logging
+-w duration
+    Minimum wait time before HTTP response
 ```
