@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 	"github.com/santihernandezc/devnull/service"
+	"github.com/sirupsen/logrus"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -35,29 +35,34 @@ func main() {
 	//
 	//It does literally nothing`)
 
-	writers := []io.Writer{os.Stdout}
+	log := logrus.New()
+	if *verbose {
+		log.SetLevel(logrus.DebugLevel)
+	}
+
 	if *output != "" {
 		path := filepath.Join(".", *output)
 		if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
-			log.Fatalf("msg=%q err=%q\n", "Error creating output directory", err)
+			log.WithError(err).Error("msg", "Error creating output directory")
+			return
 		}
 
 		f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 		if err != nil {
-			log.Fatalf("msg=%q err=%s\n", "Error opening output file", err)
+			log.WithError(err).Error("msg", "Error opening output file")
+			return
 		}
-		log.Printf("msg=%q\n", "Writing logs to "+path)
-		writers = append(writers, f)
+
+		log.WithField("path", path).Debug("Writing logs to file")
+		log.SetOutput(io.MultiWriter(os.Stdout, f))
 	}
 
-	log.Printf("msg=%q\n", "Listening on port "+*port)
-
-	log := log.New(io.MultiWriter(writers...), "", log.Ldate|log.Ltime|log.Lmicroseconds)
 	svc := service.New(log, *target, *verbose, *statusCode, *wait)
 
 	http.HandleFunc("/", svc.Handler)
 
+	log.WithField("port", *port).Debug("Starting server")
 	if err := http.ListenAndServe(":"+*port, nil); err != nil {
-		log.Fatalf("msg=%q err=%q\n", "Error from ListenAndServe", err)
+		log.WithError(err).Fatalf("Error from ListenAndServe")
 	}
 }

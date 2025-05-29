@@ -3,8 +3,8 @@ package service
 import (
 	"bytes"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -12,17 +12,17 @@ import (
 )
 
 type service struct {
-	log        *log.Logger
+	log        *logrus.Logger
 	statusCode int
 	target     string
 	verbose    bool
 	wait       time.Duration
 }
 
-func New(log *log.Logger, target string, verbose bool, statusCode int, wait time.Duration) *service {
+func New(log *logrus.Logger, target string, verbose bool, statusCode int, wait time.Duration) *service {
 	target = strings.TrimSpace(target)
 	if target != "" {
-		log.Printf("msg=%q target=%q\n", "Forwarding requests to target", target)
+		log.WithField("target", target).Debug("Forwarding requests to target")
 	}
 
 	return &service{
@@ -40,13 +40,16 @@ func (s *service) Handler(w http.ResponseWriter, r *http.Request) {
 	if s.target != "" {
 		uri, err := url.JoinPath(s.target, r.RequestURI)
 		if err != nil {
-			s.log.Printf("msg=%q target=%q path=%q error=%q\n", "Error joining paths", s.target, r.URL.Path, err)
+			s.log.WithError(err).
+				WithField("target", s.target).
+				WithField("path", r.URL.Path).
+				Error("Error joining paths")
 			return
 		}
 
 		res, err := forwardRequest(r, uri)
 		if err != nil {
-			s.log.Printf("msg=%q target=%q error=%q\n", "Error forwarding request", s.target, err)
+			s.log.WithError(err).WithField("target", s.target).Error("Error forwarding request")
 			w.WriteHeader(http.StatusBadGateway)
 			return
 		}
@@ -60,16 +63,21 @@ func (s *service) Handler(w http.ResponseWriter, r *http.Request) {
 
 		body, err := io.ReadAll(res.Body)
 		if err != nil {
-			s.log.Printf("msg=%q error=%q\n", "Error reading response body", err)
+			s.log.WithError(err).Error("Error reading response body")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
 
 		defer res.Body.Close()
 		time.Sleep(s.wait)
 		if _, err := w.Write(body); err != nil {
-			s.log.Printf("msg=%q error=%q\n", "Error writing response body", err)
+			s.log.WithError(err).Error("Error writing response body")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
 		return
 	}
+
 	time.Sleep(s.wait)
 	if s.statusCode != 200 {
 		w.WriteHeader(s.statusCode)
@@ -78,7 +86,7 @@ func (s *service) Handler(w http.ResponseWriter, r *http.Request) {
 
 func (s *service) logRequestDetails(r *http.Request) {
 	if !s.verbose {
-		s.log.Printf("msg=%q method=%q url=%q\n", "Request received", r.Method, r.RequestURI)
+		s.log.WithField("method", r.Method).WithField("uri", r.RequestURI).Info("Request received")
 		return
 	}
 
@@ -91,12 +99,23 @@ func (s *service) logRequestDetails(r *http.Request) {
 	case http.MethodPatch, http.MethodPost, http.MethodPut:
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
-			s.log.Printf("msg=%q err=%q\n", "Error reading request body", err)
+			s.log.WithError(err).Error("Error reading request body")
+			return
 		}
 		r.Body = io.NopCloser(bytes.NewBuffer(body))
-		s.log.Printf("msg=%q method=%q URI=%q headers=%q body=%q\n", "Request received", r.Method, r.RequestURI, strings.Join(headers, ", "), string(body))
+		s.log.WithFields(
+			logrus.Fields{
+				"method":  r.Method,
+				"uri":     r.RequestURI,
+				"headers": strings.Join(headers, ", "),
+				"body":    string(body),
+			}).Info("Request received")
 	default:
-		fmt.Printf("msg=%q method=%q URI=%q headers=%q\n", "Request received", r.Method, r.RequestURI, strings.Join(headers, ", "))
+		s.log.WithFields(logrus.Fields{
+			"method":  r.Method,
+			"uri":     r.RequestURI,
+			"headers": strings.Join(headers, ", "),
+		}).Info("Request received")
 	}
 }
 
