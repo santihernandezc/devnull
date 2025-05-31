@@ -3,12 +3,14 @@ package service
 import (
 	"bytes"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 type service struct {
@@ -102,6 +104,7 @@ func (s *service) logRequestDetails(r *http.Request) {
 	for k, v := range r.Header {
 		headers = append(headers, fmt.Sprintf("%s: %s", k, strings.Join(v, ", ")))
 	}
+	sort.Strings(headers)
 
 	fields := logrus.Fields{
 		"method":  r.Method,
