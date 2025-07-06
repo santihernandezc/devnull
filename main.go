@@ -8,20 +8,28 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"rsc.io/getopt"
 )
 
 var (
-	port       = flag.String("p", "8080", "Port to listen on")
-	target     = flag.String("t", "", "Target (URL) to forward requests to")
-	output     = flag.String("o", "", "Output file for logs")
-	wait       = flag.Duration("w", 0, "Minimum wait time before HTTP response")
-	statusCode = flag.Int("status", 200, "Status code used in responses if no target is configured")
-
-	verbose = flag.Bool("v", false, "Enable verbose logging")
+	port       = flag.String("port", "8080", "Port to listen on")
+	target     = flag.String("target", "", "Target (URL) to forward requests to")
+	output     = flag.String("output", "", "Output file for logs")
+	wait       = flag.Duration("wait", 0, "Minimum wait time before HTTP response")
+	statusCode = flag.Int("status-code", 200, "Status code used in responses if no target is configured")
+	verbose    = flag.Bool("verbose", false, "Enable verbose logging")
 )
 
 func init() {
-	flag.Parse()
+	getopt.Aliases(
+		"p", "port",
+		"t", "target",
+		"o", "output",
+		"w", "wait",
+		"s", "status-code",
+		"v", "verbose",
+	)
+	getopt.Parse()
 }
 
 func main() {

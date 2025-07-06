@@ -11,15 +11,16 @@ You can enable request throttling by setting a wait time with the `-w` flag.
 ### Args
 
 ```bash
--o string
+-o, --output string
     Output file for logs
--p string
+-p, --port string
     Port to listen on (default "8080")
--status int
+-s, --status-code int
     Status code used in responses if no target is configured (default 200)
--t string
+-t, --target string
     Target (URL) to forward requests to
--v	Enable verbose logging
--w duration
+-v, --verbose
+    Enable verbose logging
+-w, --wait duration
     Minimum wait time before HTTP response
 ```

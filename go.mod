@@ -5,6 +5,7 @@ go 1.20
 require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.7.0
+	rsc.io/getopt v0.0.0-20170811000552-20be20937449
 )
 
 require (
