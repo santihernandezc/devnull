@@ -1,11 +1,12 @@
 # Devnull
 
-It does literally nothing but:
+**Devnull** is a minimal HTTP server that logs request details and responds with a fixed response to all incoming requests.
 
-- Listening for requests and responding with a `200 OK` status code
-- Logging details about the request
+It can be used as a no-op HTTP receiver, useful for inspecting outgoing payloads.
 
-If set to forward requests, it will return the response from the target.
+Optionally, if a target is configured, incoming requests will be forwarded to that target. The target's response will then be relayed back to the original requester. 
+
+You can enable request throttling by setting a wait time with the `-w` flag.
 
 ### Args
 
