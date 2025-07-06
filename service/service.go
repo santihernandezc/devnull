@@ -29,7 +29,7 @@ func New(log *logrus.Logger, target string, verbose bool, statusCode int, wait t
 
 	if statusCode < 100 || statusCode > 999 {
 		if statusCode != 0 {
-			log.WithField("status_code", statusCode).Warn("Invalid status code, using 200 as fallback")
+			panic(fmt.Sprintf("Invalid status code %d", statusCode))
 		}
 		statusCode = http.StatusOK
 	}
