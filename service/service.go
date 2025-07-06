@@ -2,6 +2,7 @@ package service
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -19,6 +20,10 @@ type service struct {
 	target     string
 	verbose    bool
 	wait       time.Duration
+}
+
+type response struct {
+	Message string `json:"message"`
 }
 
 func New(log *logrus.Logger, target string, verbose bool, statusCode int, wait time.Duration) *service {
@@ -60,6 +65,7 @@ func (s *service) Handler(w http.ResponseWriter, r *http.Request) {
 			WithField("target", s.target).
 			WithField("path", r.URL.Path).
 			Error("Error joining paths")
+		s.writeResponse(w, http.StatusInternalServerError, "Could not build URL for the target")
 		return
 	}
 
@@ -67,7 +73,7 @@ func (s *service) Handler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		s.log.WithError(err).WithField("target", s.target).Error("Error forwarding request")
 		time.Sleep(s.wait)
-		w.WriteHeader(http.StatusBadGateway)
+		s.writeResponse(w, http.StatusBadGateway, "Could not forward request to the target")
 		return
 	}
 
@@ -76,20 +82,19 @@ func (s *service) Handler(w http.ResponseWriter, r *http.Request) {
 			w.Header().Add(k, vv)
 		}
 	}
-	w.WriteHeader(res.StatusCode)
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		s.log.WithError(err).Error("Error reading response body")
-		w.WriteHeader(http.StatusInternalServerError)
+		s.writeResponse(w, http.StatusInternalServerError, "Could not read the response body from the target")
 		return
 	}
-
 	defer res.Body.Close()
+
 	time.Sleep(s.wait)
+	w.WriteHeader(res.StatusCode)
 	if _, err := w.Write(body); err != nil {
 		s.log.WithError(err).Error("Error writing response body")
-		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 }
@@ -122,6 +127,15 @@ func (s *service) logRequestDetails(r *http.Request) {
 		fields["body"] = string(body)
 	}
 	s.log.WithFields(fields).Info("Request received")
+}
+
+func (s *service) writeResponse(w http.ResponseWriter, statusCode int, msg string) {
+	w.WriteHeader(statusCode)
+	if err := json.NewEncoder(w).Encode(response{
+		Message: msg,
+	}); err != nil {
+		s.log.WithError(err).Errorf("Failed to write response")
+	}
 }
 
 func forwardRequest(r *http.Request, target string) (*http.Response, error) {
