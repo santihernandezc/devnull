@@ -59,7 +59,7 @@ func main() {
 
 	http.HandleFunc("/", svc.Handler)
 
-	log.WithField("port", *port).Debug("Starting server")
+	log.WithField("port", *port).Info("Starting server")
 	if err := http.ListenAndServe(":"+*port, nil); err != nil {
 		log.WithError(err).Fatalf("Error from ListenAndServe")
 	}
