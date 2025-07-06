@@ -112,7 +112,7 @@ func (s *service) logRequestDetails(r *http.Request) {
 		"headers": strings.Join(headers, ", "),
 	}
 
-	if r.Method == http.MethodPatch || r.Method == http.MethodPost || r.Method == http.MethodPut {
+	if r.ContentLength > 0 {
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			s.log.WithError(err).Error("Error reading request body")
