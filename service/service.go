@@ -40,9 +40,11 @@ func New(log *logrus.Logger, target string, verbose bool, statusCode int, timeou
 		statusCode = http.StatusOK
 	}
 
-	c := &http.Client{
-		Timeout: timeout,
+	c := &http.Client{}
+	if timeout > 0 {
+		c.Timeout = timeout
 	}
+
 	return &service{
 		client:     c,
 		log:        log,

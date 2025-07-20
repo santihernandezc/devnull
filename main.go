@@ -18,7 +18,7 @@ var (
 	port       = flag.String("port", "8080", "Port to listen on")
 	statusCode = flag.Int("status-code", 200, "Status code used in responses if no target is configured")
 	target     = flag.String("target", "", "Target (URL) to forward requests to")
-	timeout    = flag.Duration("timeout", 30*time.Second, "Timeout for the HTTP client")
+	timeout    = flag.Duration("timeout", 30*time.Second, "Timeout for the HTTP client, 0 = no timeout")
 	verbose    = flag.Bool("verbose", false, "Log extra details about the request (headers, request body)")
 	wait       = flag.Duration("wait", 0, "Minimum wait time before HTTP response")
 )
