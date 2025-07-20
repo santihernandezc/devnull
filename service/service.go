@@ -27,7 +27,7 @@ type response struct {
 	Message string `json:"message"`
 }
 
-func New(log *logrus.Logger, target string, verbose bool, statusCode int, timeout, wait time.Duration) (*service, error) {
+func New(log *logrus.Logger, c *http.Client, target string, verbose bool, statusCode int, wait time.Duration) (*service, error) {
 	target = strings.TrimSpace(target)
 	if target != "" {
 		log.WithField("target", target).Debug("Forwarding requests to target")
@@ -38,11 +38,6 @@ func New(log *logrus.Logger, target string, verbose bool, statusCode int, timeou
 			return nil, fmt.Errorf("invalid status code: %d", statusCode)
 		}
 		statusCode = http.StatusOK
-	}
-
-	c := &http.Client{}
-	if timeout > 0 {
-		c.Timeout = timeout
 	}
 
 	return &service{

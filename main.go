@@ -2,31 +2,36 @@ package main
 
 import (
 	"flag"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/santihernandezc/devnull/service"
-	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
-	"rsc.io/getopt"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/santihernandezc/devnull/client"
+	"github.com/santihernandezc/devnull/service"
+	"github.com/sirupsen/logrus"
+	"rsc.io/getopt"
 )
 
 var (
-	debug      = flag.Bool("debug", false, "Enable debug logging")
-	output     = flag.String("output", "", "Output file for logs")
-	port       = flag.String("port", "8080", "Port to listen on")
-	statusCode = flag.Int("status-code", 200, "Status code used in responses if no target is configured")
-	target     = flag.String("target", "", "Target (URL) to forward requests to")
-	timeout    = flag.Duration("timeout", 30*time.Second, "Timeout for the HTTP client, 0 = no timeout")
-	verbose    = flag.Bool("verbose", false, "Log extra details about the request (headers, request body)")
-	wait       = flag.Duration("wait", 0, "Minimum wait time before HTTP response")
+	debug       = flag.Bool("debug", false, "Enable debug logging")
+	metricsPort = flag.String("metrics-port", "8081", "Port to serve metrics on")
+	output      = flag.String("output", "", "Output file for logs")
+	port        = flag.String("port", "8080", "Port to listen on")
+	statusCode  = flag.Int("status-code", 200, "Status code used in responses if no target is configured")
+	target      = flag.String("target", "", "Target (URL) to forward requests to")
+	timeout     = flag.Duration("timeout", 30*time.Second, "Timeout for the HTTP client, 0 = no timeout")
+	verbose     = flag.Bool("verbose", false, "Log extra details about the request (headers, request body)")
+	wait        = flag.Duration("wait", 0, "Minimum wait time before HTTP response")
 )
 
 func init() {
 	getopt.Aliases(
 		"d", "debug",
+		"m", "metrics-port",
 		"o", "output",
 		"p", "port",
 		"s", "status-code",
@@ -61,7 +66,8 @@ func main() {
 		log.SetOutput(io.MultiWriter(os.Stdout, f))
 	}
 
-	svc, err := service.New(log, *target, *verbose, *statusCode, *timeout, *wait)
+	ic := client.NewInstrumented(prometheus.DefaultRegisterer, *timeout)
+	svc, err := service.New(log, ic, *target, *verbose, *statusCode, *wait)
 	if err != nil {
 		log.WithError(err).Fatalf("Error creating service")
 	}
@@ -70,8 +76,9 @@ func main() {
 
 	// Start the metrics server.
 	go func() {
-		http.Handle("/metrics", promhttp.Handler())
-		if err := http.ListenAndServe(":8081", nil); err != nil {
+		m := http.NewServeMux()
+		m.Handle("/metrics", promhttp.Handler())
+		if err := http.ListenAndServe(":"+*metricsPort, m); err != nil {
 			log.WithError(err).Fatalf("Error from metrics server's ListenAndServe")
 		}
 	}()
