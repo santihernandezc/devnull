@@ -9,25 +9,28 @@ import (
 	"os"
 	"path/filepath"
 	"rsc.io/getopt"
+	"time"
 )
 
 var (
-	port       = flag.String("port", "8080", "Port to listen on")
-	target     = flag.String("target", "", "Target (URL) to forward requests to")
 	output     = flag.String("output", "", "Output file for logs")
-	wait       = flag.Duration("wait", 0, "Minimum wait time before HTTP response")
+	port       = flag.String("port", "8080", "Port to listen on")
 	statusCode = flag.Int("status-code", 200, "Status code used in responses if no target is configured")
+	target     = flag.String("target", "", "Target (URL) to forward requests to")
+	timeout    = flag.Duration("timeout", 30*time.Second, "Timeout for the HTTP client")
 	verbose    = flag.Bool("verbose", false, "Enable verbose logging")
+	wait       = flag.Duration("wait", 0, "Minimum wait time before HTTP response")
 )
 
 func init() {
 	getopt.Aliases(
-		"p", "port",
-		"t", "target",
 		"o", "output",
-		"w", "wait",
+		"p", "port",
 		"s", "status-code",
+		"t", "target",
+		"T", "timeout",
 		"v", "verbose",
+		"w", "wait",
 	)
 	getopt.Parse()
 }
@@ -55,7 +58,7 @@ func main() {
 		log.SetOutput(io.MultiWriter(os.Stdout, f))
 	}
 
-	svc := service.New(log, *target, *verbose, *statusCode, *wait)
+	svc := service.New(log, *target, *verbose, *statusCode, *timeout, *wait)
 
 	http.HandleFunc("/", svc.Handler)
 

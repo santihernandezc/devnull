@@ -15,6 +15,7 @@ import (
 )
 
 type service struct {
+	client     *http.Client
 	log        *logrus.Logger
 	statusCode int
 	target     string
@@ -26,7 +27,7 @@ type response struct {
 	Message string `json:"message"`
 }
 
-func New(log *logrus.Logger, target string, verbose bool, statusCode int, wait time.Duration) *service {
+func New(log *logrus.Logger, target string, verbose bool, statusCode int, timeout, wait time.Duration) *service {
 	target = strings.TrimSpace(target)
 	if target != "" {
 		log.WithField("target", target).Debug("Forwarding requests to target")
@@ -38,7 +39,12 @@ func New(log *logrus.Logger, target string, verbose bool, statusCode int, wait t
 		}
 		statusCode = http.StatusOK
 	}
+
+	c := &http.Client{
+		Timeout: timeout,
+	}
 	return &service{
+		client:     c,
 		log:        log,
 		target:     target,
 		verbose:    verbose,
@@ -69,7 +75,7 @@ func (s *service) Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err := forwardRequest(r, uri)
+	res, err := s.forwardRequest(r, uri)
 	if err != nil {
 		s.log.WithError(err).WithField("target", s.target).Error("Error forwarding request")
 		time.Sleep(s.wait)
@@ -138,13 +144,12 @@ func (s *service) writeResponse(w http.ResponseWriter, statusCode int, msg strin
 	}
 }
 
-func forwardRequest(r *http.Request, target string) (*http.Response, error) {
+func (s *service) forwardRequest(r *http.Request, target string) (*http.Response, error) {
 	req, err := http.NewRequest(r.Method, target, r.Body)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = r.Header
 
-	// TODO: Timeouts, use custom http.Client.
-	return http.DefaultClient.Do(req)
+	return s.client.Do(req)
 }
