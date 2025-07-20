@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/santihernandezc/devnull/service"
 	"github.com/sirupsen/logrus"
 	"io"
@@ -67,6 +68,15 @@ func main() {
 
 	http.HandleFunc("/", svc.Handler)
 
+	// Start the metrics server.
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		if err := http.ListenAndServe(":8081", nil); err != nil {
+			log.WithError(err).Fatalf("Error from metrics server's ListenAndServe")
+		}
+	}()
+
+	// Start the main server.
 	log.WithField("port", *port).Info("Starting server")
 	if err := http.ListenAndServe(":"+*port, nil); err != nil {
 		log.WithError(err).Fatalf("Error from ListenAndServe")
