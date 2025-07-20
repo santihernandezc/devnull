@@ -10,7 +10,9 @@ You can enable request throttling by setting a wait time with the `-w` flag.
 
 ### Args
 
-```bash
+```
+-d, --debug
+    Enable debug logging
 -o, --output string
     Output file for logs
 -p, --port string
@@ -19,8 +21,10 @@ You can enable request throttling by setting a wait time with the `-w` flag.
     Status code used in responses if no target is configured (default 200)
 -t, --target string
     Target (URL) to forward requests to
+-T, --timeout duration
+    Timeout for the HTTP client (default 30s)
 -v, --verbose
-    Enable verbose logging
+    Log extra details about the request (headers, request body)
 -w, --wait duration
     Minimum wait time before HTTP response
 ```
