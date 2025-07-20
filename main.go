@@ -13,17 +13,19 @@ import (
 )
 
 var (
+	debug      = flag.Bool("debug", false, "Enable debug logging")
 	output     = flag.String("output", "", "Output file for logs")
 	port       = flag.String("port", "8080", "Port to listen on")
 	statusCode = flag.Int("status-code", 200, "Status code used in responses if no target is configured")
 	target     = flag.String("target", "", "Target (URL) to forward requests to")
 	timeout    = flag.Duration("timeout", 30*time.Second, "Timeout for the HTTP client")
-	verbose    = flag.Bool("verbose", false, "Enable verbose logging")
+	verbose    = flag.Bool("verbose", false, "Log extra details about the request (headers, request body)")
 	wait       = flag.Duration("wait", 0, "Minimum wait time before HTTP response")
 )
 
 func init() {
 	getopt.Aliases(
+		"d", "debug",
 		"o", "output",
 		"p", "port",
 		"s", "status-code",
@@ -37,7 +39,7 @@ func init() {
 
 func main() {
 	log := logrus.New()
-	if *verbose {
+	if *debug {
 		log.SetLevel(logrus.DebugLevel)
 	}
 
