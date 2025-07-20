@@ -60,7 +60,10 @@ func main() {
 		log.SetOutput(io.MultiWriter(os.Stdout, f))
 	}
 
-	svc := service.New(log, *target, *verbose, *statusCode, *timeout, *wait)
+	svc, err := service.New(log, *target, *verbose, *statusCode, *timeout, *wait)
+	if err != nil {
+		log.WithError(err).Fatalf("Error creating service")
+	}
 
 	http.HandleFunc("/", svc.Handler)
 

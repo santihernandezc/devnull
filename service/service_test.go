@@ -14,8 +14,8 @@ import (
 
 func TestHandler(t *testing.T) {
 	targetServerHeaders := map[string][]string{
-		"Target-Header-1": []string{"test-1"},
-		"Target-Header-2": []string{"test-2"},
+		"Target-Header-1": {"test-1"},
+		"Target-Header-2": {"test-2"},
 	}
 	targetServerResponse := []byte("this is a test response")
 	ft := newFakeTarget(targetServerResponse, targetServerHeaders)
@@ -28,6 +28,7 @@ func TestHandler(t *testing.T) {
 		statusCode    int
 		target        string
 		wait          time.Duration
+		expErr        string
 		expStatusCode int
 		expHeaders    map[string][]string
 		expResponse   []byte
@@ -47,10 +48,9 @@ func TestHandler(t *testing.T) {
 			wait:          time.Second,
 		},
 		{
-			name:          "no target, bad status code",
-			statusCode:    19,
-			expStatusCode: http.StatusOK,
-			wait:          time.Second,
+			name:       "no target, bad status code",
+			statusCode: 19,
+			expErr:     "invalid status code: 19",
 		},
 		{
 			name:          "bad target, custom wait time",
@@ -77,7 +77,7 @@ func TestHandler(t *testing.T) {
 		{
 			name:          "target configured, custom headers",
 			target:        targetSrv.URL,
-			headers:       map[string][]string{"Test-Header-1": []string{"test-1"}, "Test-Header-2": []string{"test-2"}},
+			headers:       map[string][]string{"Test-Header-1": {"test-1"}, "Test-Header-2": {"test-2"}},
 			expStatusCode: http.StatusTeapot,
 			expHeaders:    targetServerHeaders,
 			expResponse:   targetServerResponse,
@@ -89,7 +89,14 @@ func TestHandler(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			t.Cleanup(ft.cleanup)
-			svc := service.New(l, test.target, false, test.statusCode, test.wait)
+			svc, err := service.New(l, test.target, false, test.statusCode, 0, test.wait)
+			if test.expErr != "" {
+				require.Error(t, err)
+				require.Equal(t, test.expErr, err.Error())
+				return
+			}
+			require.NoError(t, err)
+
 			s := httptest.NewServer(http.HandlerFunc(svc.Handler))
 			defer s.Close()
 
